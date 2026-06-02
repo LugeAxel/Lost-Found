@@ -291,7 +291,7 @@ const heavyEndpointLimiter = rateLimit({
 
 // Per-user in-memory rate limiter (for actions that trigger notifications)
 const userRateLimits = new Map();
-const checkUserRateLimit = (userId, action, maxPerMinute = 10) => {
+const checkUserRateLimit = (userId, action, maxPerMinute = 50) => {
     const now = Date.now();
     const key = `${userId}:${action}`;
     const entry = userRateLimits.get(key);
