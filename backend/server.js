@@ -265,7 +265,7 @@ app.use(attachRequestId);
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 800,
+    max: 2000,
     skip: (req) => req.originalUrl.startsWith('/socket.io'),
     standardHeaders: true,
     legacyHeaders: false,
