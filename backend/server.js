@@ -265,7 +265,7 @@ app.use(attachRequestId);
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500,
+    max: 800,
     skip: (req) => req.originalUrl.startsWith('/socket.io'),
     standardHeaders: true,
     legacyHeaders: false,
@@ -305,7 +305,7 @@ const checkUserRateLimit = (userId, action, maxPerMinute = 50) => {
     entry.count++;
     return true;
 };
-// Cleanup stale entries every 5 minutes
+// Cleanup stale entries and log memory usage every 5 minutes
 setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of userRateLimits.entries()) {
@@ -313,6 +313,9 @@ setInterval(() => {
             userRateLimits.delete(key);
         }
     }
+    const mcache = require('memory-cache');
+    const usage = process.memoryUsage();
+    logger.info(`[HEALTH] rateLimitEntries: ${userRateLimits.size}, cacheSize: ${mcache.size()}, rss: ${Math.round(usage.rss / 1024 / 1024)}MB, heap: ${Math.round(usage.heapUsed / 1024 / 1024)}/${Math.round(usage.heapTotal / 1024 / 1024)}MB`);
 }, 300000);
 
 // ─────────────────────────────────────────────
@@ -1655,7 +1658,7 @@ app.post('/api/items/:id/start-claim',
     handleValidationErrors,
     async (req, res) => {
         try {
-            if (!checkUserRateLimit(req.user.id, 'start-claim', 5)) {
+            if (!checkUserRateLimit(req.user.id, 'start-claim')) {
                 return sendError(res, 429, 'Too many claim attempts. Please slow down.', ERROR_CODES.BAD_REQUEST);
             }
             logger.request(req, 'Start claim', { itemId: req.params.id });
@@ -1852,7 +1855,7 @@ app.post('/api/items/:id/complaint',
     handleValidationErrors,
     async (req, res) => {
         try {
-            if (!checkUserRateLimit(req.user.id, 'complaint', 3)) {
+            if (!checkUserRateLimit(req.user.id, 'complaint')) {
                 return sendError(res, 429, 'Too many complaints. Please slow down.', ERROR_CODES.BAD_REQUEST);
             }
             const { reason } = req.body;

@@ -1,5 +1,7 @@
 const mcache = require('memory-cache');
 
+const MAX_CACHE_SIZE = 100;
+
 const cache = (durationSeconds) => {
     return (req, res, next) => {
         const key = '__express__' + (req.originalUrl || req.url);
@@ -10,7 +12,9 @@ const cache = (durationSeconds) => {
         const originalJson = res.json.bind(res);
         res.json = (body) => {
             if (res.statusCode >= 200 && res.statusCode < 300) {
-                mcache.put(key, body, durationSeconds * 1000);
+                if (mcache.size() < MAX_CACHE_SIZE) {
+                    mcache.put(key, body, durationSeconds * 1000);
+                }
             }
             originalJson(body);
         };
@@ -20,11 +24,11 @@ const cache = (durationSeconds) => {
 
 const invalidateCache = (pattern) => {
     const keys = mcache.keys();
-    keys.forEach(key => {
+    for (const key of keys) {
         if (key.includes(pattern)) {
             mcache.del(key);
         }
-    });
+    }
 };
 
 module.exports = { cache, invalidateCache };
